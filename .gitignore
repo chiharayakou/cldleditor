@@ -1,4 +1,11 @@
-# Pycache directory
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
+
+# Virtual env
+.venv/
+venv/
+
+# VS Code (если хочешь хранить только launch.json — см. ниже)
+.vscode/
