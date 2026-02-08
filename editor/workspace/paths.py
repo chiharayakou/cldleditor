@@ -1,4 +1,6 @@
 # Where to store the workspaces? How to calculate their IDs?
+from encodings.punycode import T
+import hashlib
 from logging import root
 import string
 from PySide6.QtCore import QCoreApplication, QStandardPaths
@@ -71,3 +73,59 @@ def isUUID(s: str) -> bool:
         return True
     except Exception:
         return False
+
+def project_key(project_uid: str | None, container_path: str | Path | None = None) -> str:
+    """
+    Returns the stable key for the workspace folder.
+    Preference: project_uid (UUID).
+    Fallback: hash from the absolute path to .cldl (if project_uid is not yet available).
+    """
+    if project_uid and isUUID(project_uid):
+        return project_uid
+    if container_path is None:
+        raise ValueError("You need either project_uid or container_path to calculate the key.")
+    absolute_path = str(Path(container_path).resolve())
+    digest = hashlib.sha256(absolute_path.encode("utf-8")).hexdigest()[:16]
+    return f"path_{digest}"
+
+def workspace_root(project_uid: str | None, container_path: str | Path | None = None) -> Path:
+    """
+    Returns the workspace root of the given project
+    <AppLocalData>/workspaces/<project_key>/
+    """
+    dirs = ensure_base_dirs()
+    key = project_key(project_uid, container_path)
+    path = dirs.workspaces / key
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+def unpacked_dir(project_uid: str | None, container_path: str | Path | None = None) -> Path:
+    """
+    Folder with an unpacked CLDL structure:
+    <workspace_root>/unpacked/
+    """
+    path = workspace_root(project_uid, container_path) / "unpacked"
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+def lock_path(project_uid: str | None, container_path: str | Path | None = None) -> Path:
+    """
+    Lock file created in a workspace
+    """
+    return workspace_root(project_uid, container_path) / "lock.json"
+
+def session_path(project_uid: str | None, container_path: str | Path | None = None) -> Path:
+    """
+    Session metadata (what is open, when, what format version, etc.)
+    """
+    return workspace_root(project_uid, container_path) / "session.json"
+
+def pack_temp_path(container_path: str | Path) -> Path:
+    """
+    The path of the temporary file for atomic packaging:
+    <workspace_root>/tmp/<name>.tmp.cldl
+    """
+    cp = Path(container_path)
+    tmp_dir = ensure_base_dirs().root / "tmp"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    return tmp_dir / f"{cp.stem}.tmp.cldl"
