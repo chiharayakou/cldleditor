@@ -1,11 +1,11 @@
 # Where to store the workspaces? How to calculate their IDs?
+from __future__ import annotations
 from encodings.punycode import T
 import hashlib
 from logging import root
 import string
 from PySide6.QtCore import QCoreApplication, QStandardPaths
 from pathlib import Path
-from __future__ import annotations
 from dataclasses import dataclass
 
 import uuid
